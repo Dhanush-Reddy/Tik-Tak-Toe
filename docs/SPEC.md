@@ -111,7 +111,7 @@ Errors (`application/problem+json`, always with `status`, `title`, `detail` or `
 
 | Status | `code` | When |
 |--------|--------|------|
-| 400 | `ValidationFailed` | malformed JSON, missing field, unknown field, invalid enum, numeric enum, row/column outside 0–2, negative revision |
+| 400 | `ValidationFailed` | malformed or empty JSON, missing field, unknown field (such as `board`), enum value that is not an exact name (`"Z"`, `"x"`, `1`, `"TwoPlayer, Computer"`), number sent as a string, row/column outside 0–2, negative revision |
 | 404 | `SessionNotFound` | unknown or expired session ID |
 | 404 | `GameNotFound` | the game ID is not the session's active game (unknown or retired by reset or mode switch) |
 | 409 | `StaleRevision` | `expectedRevision` ≠ current revision |
@@ -124,26 +124,34 @@ Check order for a move: request shape (400) → session (404) → active game (4
 
 ## 5. Requirement-to-test checklist
 
-Backend tests are in `backend/tests/TicTacToe.Api.Tests`; frontend tests are `frontend/src/**/*.spec.ts`.
+Backend tests are in `backend/tests/TicTacToe.Api.Tests` (101 cases); frontend tests are `frontend/src/app/**/*.spec.ts` (13 cases).
 
 | Requirement / risk | Test(s) |
 |--------------------|---------|
-| Valid move, turn switching (R3) | `GameTests.ValidMove_RecordsMoveAndSwitchesTurn`, `GameTests.Turns_AlternateBetweenXAndO` |
-| Invalid moves rejected, nothing mutated (R3, R13, D16) | `GameTests.InvalidMove_IsRejectedAndLeavesStateUnchanged` (occupied, wrong player, out of range, stale revision), `PlaySessionTests.RejectedMoveAfterWin_DoesNotChangeScoreOrState` |
-| All 8 lines win, double-line union (R4, D13) | `GameRulesTests.EveryWinningLine_IsDetected` (8 cases), `GameRulesTests.MoveCompletingTwoLines_HighlightsUnion` |
+| Valid move, turn switching (R3) | `GameTests.ValidMove_RecordsMoveAndSwitchesTurn`, `GameTests.Turns_AlternateBetweenXAndO`, `GameApiTests.Move_ReturnsUpdatedStateWithHistory` |
+| Invalid moves rejected; history, revision, and turn unchanged (R3, R13, D16) | `GameTests.InvalidMove_IsRejectedAndLeavesStateUnchanged` (occupied, wrong player, two out-of-range cases, two stale-revision cases), `GameApiTests.InvalidMoveRequest_Returns400AndChangesNothing` (12 malformed bodies), `GameApiTests.OccupiedCell_Returns409`, `GameApiTests.WrongPlayer_Returns409` |
+| All 8 lines win; double-line union (R4, D13) | `GameRulesTests.EveryWinningLine_IsDetected` (8 cases), `GameRulesTests.OWin_IsDetected`, `GameRulesTests.MoveCompletingTwoLines_HighlightsUnion` |
 | Ninth-move win is not a draw (D13) | `GameRulesTests.FullBoardWithLine_IsWinNotDraw`, `GameTests.NinthMoveWin_IsWonNotDraw` |
 | Draw (R5) | `GameRulesTests.FullBoardWithoutLine_IsDraw`, `GameTests.FullBoardWithoutWinner_IsDraw` |
-| Move after completion (R4, R5, R13) | `GameTests.MoveAfterWin_IsRejected`, `GameTests.MoveAfterDraw_IsRejected` |
-| Two Player undo (R8, D4) | `GameTests.TwoPlayerUndo_RemovesOnlyLastMoveAndRestoresTurn`, `GameTests.RepeatedUndo_StopsAtEmptyBoard` |
-| Computer undo (R8, D5) | `GameTests.ComputerUndo_RemovesHumanAndComputerMovesTogether` |
-| Undo after completion rejected (D3) | `GameTests.UndoAfterCompletion_IsRejected` (both modes) |
-| Computer priorities and tie-breaks (R10, D7) | `ComputerStrategyTests.*` (win over block, block over center, center, lowest corner, any cell, lowest-index ties) |
-| Computer selection does not mutate input | `ComputerStrategyTests.ChooseCell_DoesNotModifyBoard` |
-| Computer replies in one operation; never after completion (R10, D6) | `GameTests.ComputerMode_RepliesInSameOperation`, `GameTests.ComputerMode_NoReplyAfterHumanWin`, `GameTests.ComputerMode_NoReplyAfterHumanDraw`, `GameTests.ComputerMode_ClientCannotPlayO` |
-| Scoreboard exactly once (R9, D12) | `PlaySessionTests.Win_IncrementsWinnerOnce`, `PlaySessionTests.Draw_IncrementsDrawsOnce`, `PlaySessionTests.RejectedMoveAfterWin_DoesNotChangeScoreOrState`, `GameApiTests.Get_DoesNotChangeScoreboard` |
-| Reset Game (R6, D8) | `PlaySessionTests.ResetGame_PreservesScoreAndModeAndClearsGame`, `PlaySessionTests.RetiredGame_CannotBeModified`, `GameApiTests.RetiredGameId_Returns404` |
-| Mode switch (D9) | `PlaySessionTests.StartNewGame_InOtherMode_KeepsScoreboard` |
-| Reset Scoreboard (R9, D10) | `PlaySessionTests.ResetScoreboard_KeepsBoardAndDoesNotRecount`, `PlaySessionTests.ResetScoreboard_ThenNewResult_CountsNormally` |
-| Session isolation, stale/duplicate revision (D2, D14, D15) | `GameSessionServiceTests.Sessions_HaveIndependentScoreboards`, `GameSessionServiceTests.ConcurrentDuplicateMoves_OnlyOneSucceeds`, `GameApiTests.StaleRevision_Returns409` |
-| HTTP validation and serialization (D11, D17) | `GameApiTests.*` (shape, 400 cases, 404 cases, problem+json) |
-| UI renders server state, pending, errors (R14) | `app.spec.ts`, `game-store.spec.ts`, `board.spec.ts` |
+| Move after completion (R4, R5, R13) | `GameTests.MoveAfterWin_IsRejected`, `GameTests.MoveAfterDraw_IsRejected`, `GameApiTests.MoveAndUndoAfterCompletion_Return409` |
+| Two Player undo (R8, D4) | `GameTests.TwoPlayerUndo_RemovesOnlyLastMoveAndRestoresTurn`, `GameTests.RepeatedUndo_StopsAtEmptyBoard`, `GameApiTests.Undo_TwoPlayer_RemovesLastMove` |
+| Computer undo (R8, D5) | `GameTests.ComputerUndo_RemovesHumanAndComputerMovesTogether`, `GameApiTests.Undo_Computer_RemovesMovePair` |
+| Undo after completion rejected (D3) | `GameTests.UndoAfterCompletion_IsRejected` (both modes), `GameApiTests.MoveAndUndoAfterCompletion_Return409` |
+| Computer priorities and tie-breaks (R10, D7) | `ComputerStrategyTests.WinsInsteadOfBlocking`, `BlocksInsteadOfTakingCenter`, `TakesCenterWhenNothingToWinOrBlock`, `TakesLowestFreeCornerWhenCenterIsTaken`, `TakesFirstCornerWhenAllCornersAreFree`, `TakesLowestEmptyCellWhenCenterAndCornersAreTaken`, `ChoosesLowestWinningCellWhenSeveralWin`, `ChoosesLowestBlockingCellWhenXHasSeveralThreats`, `GameTests.ComputerMode_FollowsPriorities_ThroughAGame` |
+| Computer only makes valid moves and never mutates its input | `ComputerStrategyTests.ChooseCell_DoesNotModifyBoard`, `ComputerStrategyTests.AlwaysChoosesAnEmptyCell_InEveryLegalPosition` (every legal position with O to move) |
+| Computer replies in one operation; never after completion; client cannot play O (R10, D6) | `GameTests.ComputerMode_RepliesInSameOperation`, `GameTests.ComputerMode_NoReplyAfterHumanWin`, `GameTests.ComputerMode_NoReplyAfterHumanDraw`, `GameTests.ComputerMode_ComputerCanWin`, `GameTests.ComputerMode_ClientCannotPlayO`, `GameApiTests.ComputerMode_MoveResponseIncludesComputerReply`, `GameApiTests.ComputerMode_PlayingAsO_Returns409` |
+| Scoreboard exactly once (R9, D12) | `PlaySessionTests.Win_IncrementsWinnerOnce`, `OWin_IncrementsOWins`, `Draw_IncrementsDrawsOnce`, `ComputerWin_IsScoredForO`, `InProgressMoves_DoNotScore`, `RejectedMoveAfterWin_DoesNotChangeScoreOrState`, `GameSessionServiceTests.ReadingState_DoesNotChangeScoreboard`, `GameApiTests.Win_IsReportedAndScoredOnce`, `GameApiTests.Get_DoesNotChangeScoreboard` |
+| Reset Game (R6, D8) | `PlaySessionTests.ResetGame_PreservesScoreAndModeAndClearsGame`, `PlaySessionTests.RetiredGame_CannotBeModified`, `GameApiTests.ResetGame_ReturnsFreshGameAndKeepsScore`, `GameApiTests.RetiredGameId_Returns404` |
+| Mode switch (D9) | `PlaySessionTests.StartNewGame_InOtherMode_KeepsScoreboard`, `GameApiTests.StartNewGame_SwitchesModeAndKeepsScore` |
+| Reset Scoreboard (R9, D10) | `PlaySessionTests.ResetScoreboard_KeepsBoardAndDoesNotRecount`, `PlaySessionTests.ResetScoreboard_ThenNewResult_CountsNormally`, `GameApiTests.ResetScoreboard_ClearsCountsAndKeepsGame` |
+| Session isolation (D2) | `GameSessionServiceTests.Sessions_HaveIndependentScoreboardsAndGames`, `GameApiTests.Sessions_HaveSeparateScoreboards`, `GameApiTests.UnknownSession_Returns404`, `GameSessionServiceTests.UnknownSession_IsNotFound` |
+| Stale and duplicate commands; atomicity (D14, D15) | `GameSessionServiceTests.ConcurrentDuplicateMoves_OnlyOneSucceeds` (32 parallel requests, 1 applied), `GameTests.Undo_WithStaleRevision_IsRejected`, `GameApiTests.StaleRevision_Returns409AndChangesNothing` |
+| HTTP contract: shape, enums as strings, 201/Location, problem+json (D11, D17) | `GameApiTests.CreateSession_Returns201WithInitialState`, `GameApiTests.InvalidMode_Returns400`, every `AssertProblem` call in `GameApiTests` |
+| UI renders server state (R14) | `app.spec.ts`: "creates a session and renders the empty game…", "renders a finished game as returned…", "switches mode through the API…", "undo, reset game, and reset scoreboard…" |
+| UI locks controls while pending; one request per click; occupied and finished cells unplayable | `app.spec.ts`: "sends one move with the expected revision and locks the controls…", "does not send a move for an occupied cell", "renders a finished game…" (click on empty cell sends nothing); `board.spec.ts` |
+| UI errors and recovery (D15, D19) | `app.spec.ts`: "keeps the last confirmed state and offers a reload when the API is unreachable", "shows a rejected move and reloads server state instead of retrying it", "starts a new session with a notice when the stored session no longer exists" |
+| Accessibility labels, winning highlight | `board.spec.ts`: "labels every cell…", "marks the winning cells visibly and in their labels" |
+
+Outside the automated suites, the full UI was also driven in a real browser against the real API: 31 checks
+covering every flow above, plus keyboard play, page refresh, a backend restart, the backend going down, and a
+stale second tab. `docs/AI_WORKFLOW.md` describes that run; its script is not part of the repository.
