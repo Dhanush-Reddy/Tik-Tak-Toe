@@ -1,0 +1,17 @@
+<div class="board" role="group" aria-label="Game board">
+  @for (cell of cells(); track cell.index) {
+    <button
+      type="button"
+      class="cell"
+      [class.x]="cell.value === 'X'"
+      [class.o]="cell.value === 'O'"
+      [class.winning]="cell.winning"
+      [class.playable]="cell.playable"
+      [attr.aria-label]="cell.label"
+      [attr.aria-disabled]="!cell.playable"
+      (click)="select(cell)"
+    >
+      {{ cell.value }}
+    </button>
+  }
+</div>

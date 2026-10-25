@@ -1,0 +1,37 @@
+<section class="card" aria-labelledby="scoreboard-heading">
+  <div class="card-header">
+    <h2 id="scoreboard-heading">Scoreboard</h2>
+    <button
+      type="button"
+      class="link-button"
+      [disabled]="resetDisabled()"
+      (click)="resetRequested.emit()"
+    >
+      Reset scoreboard
+    </button>
+  </div>
+  <dl class="scores">
+    <div class="score x">
+      <dt>
+        X wins
+        @if (mode() === 'Computer') {
+          <span class="tag">you</span>
+        }
+      </dt>
+      <dd data-testid="x-wins">{{ scoreboard().xWins }}</dd>
+    </div>
+    <div class="score o">
+      <dt>
+        O wins
+        @if (mode() === 'Computer') {
+          <span class="tag">computer</span>
+        }
+      </dt>
+      <dd data-testid="o-wins">{{ scoreboard().oWins }}</dd>
+    </div>
+    <div class="score draw">
+      <dt>Draws</dt>
+      <dd data-testid="draws">{{ scoreboard().draws }}</dd>
+    </div>
+  </dl>
+</section>

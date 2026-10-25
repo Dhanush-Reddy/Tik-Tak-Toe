@@ -1,0 +1,13 @@
+# .NET build output and local tooling state
+bin/
+obj/
+TestResults/
+.vs/
+*.user
+
+# Editors and OS files
+.idea/
+.DS_Store
+Thumbs.db
+
+# The Angular workspace has its own frontend/.gitignore (node_modules, dist, .angular/cache).

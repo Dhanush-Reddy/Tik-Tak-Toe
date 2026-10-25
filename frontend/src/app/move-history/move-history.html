@@ -1,0 +1,32 @@
+<section class="card" aria-labelledby="history-heading">
+  <div class="card-header">
+    <h2 id="history-heading">Move history</h2>
+  </div>
+  @if (moves().length === 0) {
+    <p class="empty">No moves yet.</p>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Move</th>
+          <th scope="col">Player</th>
+          <th scope="col">Position</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (move of moves(); track move.number) {
+          <tr>
+            <td>{{ move.number }}</td>
+            <td>
+              <span [class]="move.player === 'X' ? 'player x' : 'player o'">{{ move.player }}</span>
+              @if (mode() === 'Computer' && move.player === 'O') {
+                <span class="tag">computer</span>
+              }
+            </td>
+            <td>Row {{ move.row + 1 }}, Column {{ move.column + 1 }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

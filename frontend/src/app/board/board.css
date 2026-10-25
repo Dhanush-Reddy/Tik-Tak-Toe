@@ -1,0 +1,57 @@
+:host {
+  display: block;
+  width: var(--board-size, 100%);
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 10px;
+  aspect-ratio: 1;
+}
+
+.cell {
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: clamp(2.5rem, 7vh, 4rem);
+  font-weight: 700;
+  line-height: 1;
+  cursor: default;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.cell.playable {
+  cursor: pointer;
+}
+
+.cell.playable:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.cell.x {
+  color: var(--x);
+}
+
+.cell.o {
+  color: var(--o);
+}
+
+.cell.winning {
+  background: var(--win-bg);
+  border-color: var(--win-border);
+  border-width: 4px;
+  box-shadow: inset 0 0 0 2px var(--win-border);
+}
+
+.cell[aria-disabled='true']:not(.x):not(.o) {
+  cursor: not-allowed;
+}

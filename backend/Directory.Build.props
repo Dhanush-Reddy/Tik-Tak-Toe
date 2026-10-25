@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <!-- Commit packages.lock.json so restores are reproducible. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
+  </PropertyGroup>
+</Project>

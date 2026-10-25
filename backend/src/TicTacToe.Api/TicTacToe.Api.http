@@ -1,0 +1,46 @@
+# Example requests for the VS Code REST Client / Visual Studio / Rider .http runners.
+# Start the API first: dotnet run --project src/TicTacToe.Api   (from backend/)
+# Then paste the sessionId and gameId from the first response below.
+
+@host = http://localhost:5080
+@sessionId = 00000000-0000-0000-0000-000000000000
+@gameId = 00000000-0000-0000-0000-000000000000
+
+### Create a play session (scoreboard + first game)
+POST {{host}}/api/sessions
+Content-Type: application/json
+
+{ "mode": "TwoPlayer" }
+
+### Current game of the session
+GET {{host}}/api/sessions/{{sessionId}}
+
+### Get a specific game
+GET {{host}}/api/sessions/{{sessionId}}/games/{{gameId}}
+
+### Play X at row 0, column 0 (zero-based); expectedRevision is the revision you last saw
+POST {{host}}/api/sessions/{{sessionId}}/games/{{gameId}}/moves
+Content-Type: application/json
+
+{ "player": "X", "row": 0, "column": 0, "expectedRevision": 0 }
+
+### Undo
+POST {{host}}/api/sessions/{{sessionId}}/games/{{gameId}}/undo
+Content-Type: application/json
+
+{ "expectedRevision": 1 }
+
+### Reset Game (returns the new game; the old gameId stops working)
+POST {{host}}/api/sessions/{{sessionId}}/games/{{gameId}}/reset
+
+### Start a new game in another mode (scoreboard kept)
+POST {{host}}/api/sessions/{{sessionId}}/games
+Content-Type: application/json
+
+{ "mode": "Computer" }
+
+### Scoreboard
+GET {{host}}/api/sessions/{{sessionId}}/scoreboard
+
+### Reset Scoreboard
+POST {{host}}/api/sessions/{{sessionId}}/scoreboard/reset
