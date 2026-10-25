@@ -23,11 +23,6 @@ public static class GameRules
     /// </summary>
     public static GameOutcome Evaluate(IReadOnlyList<Player?> board)
     {
-        if (board.Count != CellCount)
-        {
-            throw new ArgumentException($"A board has exactly {CellCount} cells.", nameof(board));
-        }
-
         Player? winner = null;
         var winningCells = new SortedSet<int>();
 

@@ -21,15 +21,15 @@ export class GameApi {
     return this.http.post<GameState>(`${this.sessions}/${sessionId}/games`, { mode });
   }
 
-  submitMove(game: GameRef, move: MoveRequest): Observable<GameState> {
+  submitMove(game: GameState, move: MoveRequest): Observable<GameState> {
     return this.http.post<GameState>(`${this.gameUrl(game)}/moves`, move);
   }
 
-  undo(game: GameRef, expectedRevision: number): Observable<GameState> {
+  undo(game: GameState, expectedRevision: number): Observable<GameState> {
     return this.http.post<GameState>(`${this.gameUrl(game)}/undo`, { expectedRevision });
   }
 
-  resetGame(game: GameRef): Observable<GameState> {
+  resetGame(game: GameState): Observable<GameState> {
     return this.http.post<GameState>(`${this.gameUrl(game)}/reset`, null);
   }
 
@@ -37,9 +37,7 @@ export class GameApi {
     return this.http.post<Scoreboard>(`${this.sessions}/${sessionId}/scoreboard/reset`, null);
   }
 
-  private gameUrl(game: GameRef): string {
+  private gameUrl(game: GameState): string {
     return `${this.sessions}/${game.sessionId}/games/${game.gameId}`;
   }
 }
-
-export type GameRef = Pick<GameState, 'sessionId' | 'gameId'>;

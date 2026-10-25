@@ -9,15 +9,7 @@ public sealed class Game
 {
     private readonly List<Move> _moves = [];
 
-    public Game(GameMode mode)
-    {
-        if (!Enum.IsDefined(mode))
-        {
-            throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unknown game mode.");
-        }
-
-        Mode = mode;
-    }
+    public Game(GameMode mode) => Mode = mode;
 
     public Guid Id { get; } = Guid.NewGuid();
 

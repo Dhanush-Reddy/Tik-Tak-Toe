@@ -25,37 +25,39 @@ Start the API (`cd backend && dotnet run --project src/TicTacToe.Api`) and the U
 
 Browser → `POST /api/sessions/{s}/games/{g}/moves` with `{"player":"X","row":0,"column":0,"expectedRevision":0}`
 
-1. **UI guard.** The click calls `GameStore.play` (`game-store.ts:55`). It ignores the click if a
-   request is pending, the game is over, or the cell is taken, then sends the current player,
-   row/column, and `state.revision`. `run()` (`game-store.ts:120`) sets the pending state, which
-   locks the board and buttons.
-2. **Binding and validation.** In `Program.cs:61–65`, JSON accepts enums only by exact name, numbers
+1. **UI guard.** The board emits a click only for an empty cell while the game is playable
+   (`board/board.ts:38`). `GameStore.play` (`game-store.ts:52`) ignores it if the game is over, then
+   sends the current player, row/column, and `state.revision`. `run()` (`game-store.ts:117`) ignores
+   it if a request is already pending; otherwise it sets the pending state, which locks the board
+   and buttons.
+2. **Binding and validation.** In `Program.cs:53–57`, JSON accepts enums only by exact name, numbers
    only as numbers, and no unknown properties. `Contracts/Requests.cs` makes every field `required`
    and range-checked. Any failure returns 400 `ValidationFailed` before our code runs
    (`Program.cs:26`).
-3. **Controller.** `GamesController.Move` (`Controllers/GamesController.cs:27`) only forwards the
+3. **Controller.** `GamesController.Move` (`Controllers/GamesController.cs:23`) only forwards the
    values to the service.
-4. **Session lookup and lock.** `GameSessionService.WithSession` (`Sessions/GameSessionService.cs:70`)
-   finds the session (otherwise 404 `SessionNotFound`) and holds `lock (session.Sync)` (line 79)
-   for the whole command, including building the response.
+4. **Session lookup and lock.** `GameSessionService.Play` hands the command to `Run`
+   (`Sessions/GameSessionService.cs:51`). `WithSession` (line 58) finds the session (otherwise 404
+   `SessionNotFound`) and holds `lock (session.Sync)` (line 67) for the whole command, including
+   building the response.
 5. **Active game.** `PlaySession.Play` (`Sessions/PlaySession.cs:27`) resolves the game through
    `ActiveGame` (line 20); a retired or foreign ID gives 404 `GameNotFound`.
-6. **Rules.** `Game.Play` (`Domain/Game.cs:65`) checks, in order: revision → game not finished → O
+6. **Rules.** `Game.Play` (`Domain/Game.cs:57`) checks, in order: revision → game not finished → O
    not sent in Computer mode → right player's turn → on the board → cell empty. Each failed check
-   throws before any change. Then it appends X's move (line 94). **Only if the game is still in
-   progress** (line 97) does it ask `ComputerStrategy.ChooseCell` for O's cell and append it. It
-   increments `Revision` once (line 103) and returns the new outcome.
+   throws before any change. Then it appends X's move (line 86). **Only if the game is still in
+   progress** (line 89) does it ask `ComputerStrategy.ChooseCell` for O's cell and append it. It
+   increments `Revision` once (line 95) and returns the new outcome.
 7. **Score.** Back in `PlaySession.Play`, if that outcome is `Won` or `Draw`, the scoreboard records it
    (line 35).
-8. **Response.** `ToResponse` (`GameSessionService.cs:85`) derives board, status, winner, winning
+8. **Response.** `ToResponse` (`GameSessionService.cs:73`) derives board, status, winner, winning
    cells, current player, and `canUndo` from the move history, and attaches the scoreboard, all from
    one locked snapshot.
 9. **Errors.** `ApiExceptionFilter` (`Errors/ApiExceptionFilter.cs:15`) turns `GameRuleException`
-   into 409 (or 400 for out-of-range cells) and `ResourceNotFoundException` into 404, as
-   problem+json with a `code`. Anything unexpected goes to `UseExceptionHandler` (`Program.cs:46`):
-   a generic 500 with no stack trace.
-10. **Render.** `accept()` (`game-store.ts:136`) stores the response in a signal, and the
-    components re-render from it. On an error, `recover()` (`game-store.ts:142`) keeps the last
+   into 409 and `ResourceNotFoundException` into 404, as problem+json with a `code`. (Out-of-range
+   cells never get this far: step 2 already returned 400.) Anything unexpected goes to
+   `UseExceptionHandler` (`Program.cs:43`): a generic 500 with no stack trace.
+10. **Render.** `accept()` (`game-store.ts:133`) stores the response in a signal, and the
+    components re-render from it. On an error, `recover()` (`game-store.ts:139`) keeps the last
     confirmed state. After a 409 it re-reads state with a GET, after a 404 it reloads or starts a new
     session, and on a network failure it offers **Reload game**. It never replays the failed POST.
 
@@ -63,26 +65,27 @@ Browser → `POST /api/sessions/{s}/games/{g}/moves` with `{"player":"X","row":0
 
 ### Board state is derived, not stored
 `Game` stores only `_moves` and `Revision` (`Domain/Game.cs`). The board is rebuilt from the moves
-(`Board()`, line 49). Status, winner, and winning cells come from `GameRules.Evaluate`
-(`Domain/GameRules.cs:24`). `CurrentPlayer` (line 38) is X after an even number of moves and `null`
-once the game is over. `CanUndo` is line 40. There is no stored "winner" or "isOver" flag that could
-disagree with the board. Evaluation checks all eight lines **before** checking for a full board
-(lines 44 and 56), so a ninth move that completes a line is a win. When one move completes two
+(`Board()`, line 41). Status, winner, and winning cells come from `GameRules.Evaluate`
+(`Domain/GameRules.cs:24`). `CurrentPlayer` (`Game.cs:30`) is X after an even number of moves and
+`null` once the game is over. `CanUndo` is line 32. There is no stored "winner" or "isOver" flag that
+could disagree with the board. Evaluation checks all eight lines **before** checking for a full board
+(`GameRules.cs` lines 39 and 51), so a ninth move that completes a line is a win. When one move completes two
 lines, the winning cells are their union.
 
 ### Undo, including the computer pair
-`UndoStep` (`Domain/Game.cs:46`) is 1 in Two Player mode and 2 in Computer mode, and `Undo` (line 111)
-removes that many moves from the end (line 127). After that, everything derived (board, turn,
+`UndoStep` (`Domain/Game.cs:38`) is 1 in Two Player mode and 2 in Computer mode, and `Undo` (line 103)
+removes that many moves from the end (line 119). After that, everything derived (board, turn,
 status) is correct automatically. Why removing two is always right in Computer mode: the computer
 replies inside the same command as the human move, so an in-progress Computer game always ends with
 an X/O pair, and X is always to move. Undo is rejected after a win or draw (Option A), and with
 `NothingToUndo` when fewer than `UndoStep` moves exist.
 
 ### Computer priorities
-`ComputerStrategy.ChooseCell` (`Domain/ComputerStrategy.cs:14`) is five lines that read like the
-assessment (lines 24–28): a winning cell for O, else a cell blocking X, else the centre, else a
-corner, else any empty cell. Each step scans cells in ascending order, so ties go to the lowest
-index. `CompletesLine` (line 35) asks "would this cell complete a line for this player?" by reading
+`ComputerStrategy.ChooseCell` (`Domain/ComputerStrategy.cs:15`) is five lines that read like the
+assessment (lines 21–25): a winning cell for O, else a cell blocking X, else the centre, else a
+corner, else any empty cell. They are chained candidate lists, and `First()` (line 26) takes the
+first candidate and evaluates nothing after it. Each step scans cells in ascending order, so ties go
+to the lowest index. `CompletesLine` (line 33) asks "would this cell complete a line for this player?" by reading
 the other two cells of each line. It never places a hypothetical piece, so the input board cannot
 be mutated. A test confirms this for every legal position.
 
@@ -98,18 +101,18 @@ change create a new game, and only that new game can produce the next result.
 `POST /api/sessions` creates a `PlaySession` (`Sessions/PlaySession.cs`): one `Scoreboard` plus
 exactly one `CurrentGame`. Reset Game and a mode change replace `CurrentGame` (lines 42 and 45), and
 the old game ID simply stops resolving. The browser keeps only the session ID in `sessionStorage`
-(`game-store.ts:176`), so a refresh resumes the session while separate tabs stay separate. The store
+(`game-store.ts:173`), so a refresh resumes the session while separate tabs stay separate. The store
 is a singleton dictionary (`Program.cs:12`), so restarting the API clears it and the UI reports that.
 
 ### Concurrency
 Two mechanisms solve two different problems:
 
-- **Atomicity:** the per-session lock (`GameSessionService.cs:79`). Without it, two requests could
+- **Atomicity:** the per-session lock (`GameSessionService.cs:67`). Without it, two requests could
   interleave between "human move appended", "computer reply appended", and "score recorded". The
   `ConcurrentDictionary` (line 14) only makes the lookup safe. Different sessions never block each
   other.
 - **Staleness:** the revision. The lock serializes two identical "X plays at revision 0" requests,
-  but both would still be legal moves on their own. The revision check (`Game.cs:67`) makes the
+  but both would still be legal moves on their own. The revision check (`Game.cs:59`) makes the
   second one a `409 StaleRevision`. The test `ConcurrentDuplicateMoves_OnlyOneSucceeds` fires 32
   of them in parallel and expects exactly one to apply.
 
@@ -169,7 +172,7 @@ becomes "remove the last N moves". Rebuilding nine cells is trivial work.
 
 **What happens when the backend restarts?** All sessions are gone. The next request returns
 `404 SessionNotFound`. The UI starts a new session and shows a notice that the old one was lost
-(`game-store.ts:145`).
+(`game-store.ts:142`).
 
 **How would you take this to production?** Expire idle sessions, persist sessions (SQLite, or Redis
 if there are several instances), serve the built frontend from the API or a reverse proxy, add CI

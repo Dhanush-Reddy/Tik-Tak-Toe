@@ -38,8 +38,7 @@ cd backend
 dotnet run --project src/TicTacToe.Api
 ```
 
-It listens on `http://localhost:5080` (set in `src/TicTacToe.Api/Properties/launchSettings.json`). In
-Development it also serves the OpenAPI document at http://localhost:5080/openapi/v1.json.
+It listens on `http://localhost:5080` (set in `src/TicTacToe.Api/Properties/launchSettings.json`).
 
 **2. Frontend (http://localhost:4200)**
 
@@ -66,7 +65,7 @@ cleanly. `npm ci` works on npm 10.9.4 (verified).
 
 ```bash
 cd backend
-dotnet test          # 101 tests: rules, computer strategy, game/session transitions, HTTP contract
+dotnet test          # 96 tests: rules, computer strategy, game/session transitions, HTTP contract
 
 cd ../frontend
 npm ci               # if not already installed
@@ -313,10 +312,10 @@ backend/
   src/TicTacToe.Api/
     Domain/        pure rules: Game, GameRules, ComputerStrategy, Scoreboard, enums, Move
     Sessions/      PlaySession (scoreboard + active game), GameSessionService (store + locking)
-    Contracts/     request/response DTOs, strict enum converter, OpenAPI enum schemas
+    Contracts/     request/response DTOs, strict enum converter
     Controllers/   Sessions, Games, Scoreboard
     Errors/        exception → problem+json mapping
-    Program.cs     JSON options, validation responses, error handling, OpenAPI
+    Program.cs     JSON options, validation responses, error handling
   tests/TicTacToe.Api.Tests/
     Domain/ Sessions/ Api/
 frontend/

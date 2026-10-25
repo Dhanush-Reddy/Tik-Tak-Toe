@@ -17,7 +17,6 @@ public sealed class ApiExceptionFilter(ProblemDetailsFactory problemDetailsFacto
         (int Status, string Title, string Code)? mapping = context.Exception switch
         {
             ResourceNotFoundException e => (StatusCodes.Status404NotFound, "Not found", e.Code),
-            GameRuleException { Code: GameErrorCode.CellOutOfRange } e => (StatusCodes.Status400BadRequest, "Invalid move", e.Code.ToString()),
             GameRuleException e => (StatusCodes.Status409Conflict, "The request conflicts with the current game state", e.Code.ToString()),
             _ => null,
         };

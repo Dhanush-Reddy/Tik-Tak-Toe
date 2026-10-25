@@ -8,13 +8,11 @@ namespace TicTacToe.Api.Contracts;
 
 public sealed record NewGameRequest
 {
-    [EnumDataType(typeof(GameMode))]
     public required GameMode Mode { get; init; }
 }
 
 public sealed record MoveRequest
 {
-    [EnumDataType(typeof(Player))]
     public required Player Player { get; init; }
 
     /// <summary>Zero-based row, 0–2.</summary>

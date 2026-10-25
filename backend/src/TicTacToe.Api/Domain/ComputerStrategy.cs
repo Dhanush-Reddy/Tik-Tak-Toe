@@ -11,21 +11,19 @@ public static class ComputerStrategy
     private const int Center = 4;
     private static readonly int[] Corners = [0, 2, 6, 8];
 
+    /// <exception cref="InvalidOperationException">The board is full.</exception>
     public static int ChooseCell(IReadOnlyList<Player?> board)
     {
-        var emptyCells = Enumerable.Range(0, GameRules.CellCount).Where(cell => board[cell] is null).ToList();
-        if (emptyCells.Count == 0)
-        {
-            throw new InvalidOperationException("The computer cannot move on a full board.");
-        }
-
         bool IsEmpty(int cell) => board[cell] is null;
+        var emptyCells = Enumerable.Range(0, GameRules.CellCount).Where(IsEmpty).ToList();
 
-        return FirstWhere(emptyCells, cell => CompletesLine(board, cell, Player.O)) // 1. win
-            ?? FirstWhere(emptyCells, cell => CompletesLine(board, cell, Player.X)) // 2. block X
-            ?? FirstWhere([Center], IsEmpty) // 3. center
-            ?? FirstWhere(Corners, IsEmpty) // 4. corner
-            ?? emptyCells[0]; // 5. any empty cell
+        // Candidates in priority order; First() stops at the first one, so later steps are never evaluated.
+        return emptyCells.Where(cell => CompletesLine(board, cell, Player.O)) // 1. win
+            .Concat(emptyCells.Where(cell => CompletesLine(board, cell, Player.X))) // 2. block X
+            .Concat(new[] { Center }.Where(IsEmpty)) // 3. center
+            .Concat(Corners.Where(IsEmpty)) // 4. corner
+            .Concat(emptyCells) // 5. any empty cell
+            .First();
     }
 
     /// <summary>
@@ -34,18 +32,4 @@ public static class ComputerStrategy
     /// </summary>
     private static bool CompletesLine(IReadOnlyList<Player?> board, int cell, Player player) =>
         GameRules.WinningLines.Any(line => line.Contains(cell) && line.All(i => i == cell || board[i] == player));
-
-    /// <summary>The first matching cell in ascending order, or null.</summary>
-    private static int? FirstWhere(IEnumerable<int> cells, Func<int, bool> predicate)
-    {
-        foreach (var cell in cells)
-        {
-            if (predicate(cell))
-            {
-                return cell;
-            }
-        }
-
-        return null;
-    }
 }

@@ -69,7 +69,7 @@
           <button
             type="button"
             class="primary"
-            [disabled]="!store.canReset()"
+            [disabled]="store.busy()"
             (click)="store.resetGame()"
           >
             Reset game

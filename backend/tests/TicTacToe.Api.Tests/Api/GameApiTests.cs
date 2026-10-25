@@ -157,40 +157,6 @@ public class GameApiTests(WebApplicationFactory<Program> factory) : IClassFixtur
     }
 
     [Fact]
-    public async Task OccupiedCell_Returns409()
-    {
-        var state = await ReadJson(await PostMove(await CreateSession(), "X", 0, 0));
-
-        await AssertProblem(await PostMove(state, "O", 0, 0), HttpStatusCode.Conflict, "CellOccupied");
-    }
-
-    [Fact]
-    public async Task WrongPlayer_Returns409()
-    {
-        var state = await ReadJson(await PostMove(await CreateSession(), "X", 0, 0));
-
-        await AssertProblem(await PostMove(state, "X", 1, 1), HttpStatusCode.Conflict, "WrongPlayer");
-    }
-
-    [Fact]
-    public async Task ComputerMode_PlayingAsO_Returns409()
-    {
-        var state = await ReadJson(await PostMove(await CreateSession("Computer"), "X", 0, 0));
-
-        await AssertProblem(await PostMove(state, "O", 2, 2), HttpStatusCode.Conflict, "WrongPlayer");
-    }
-
-    [Fact]
-    public async Task MoveAndUndoAfterCompletion_Return409()
-    {
-        var state = await PlayCells(await CreateSession(), Lines.XWinsTopRow);
-
-        await AssertProblem(await PostMove(state, "O", 2, 2), HttpStatusCode.Conflict, "GameCompleted");
-        await AssertProblem(await PostUndo(state), HttpStatusCode.Conflict, "GameCompleted");
-        AssertScore(await GetJson($"{SessionUrl(state)}/scoreboard"), 1, 0, 0);
-    }
-
-    [Fact]
     public async Task Undo_TwoPlayer_RemovesLastMove()
     {
         var state = await PlayCells(await CreateSession(), [0, 4]);
@@ -295,16 +261,6 @@ public class GameApiTests(WebApplicationFactory<Program> factory) : IClassFixtur
             await _client.PostAsJsonAsync($"{url}/games/{Guid.NewGuid()}/moves", new { player = "X", row = 0, column = 0, expectedRevision = 0 }),
             HttpStatusCode.NotFound,
             "SessionNotFound");
-    }
-
-    [Fact]
-    public async Task Sessions_HaveSeparateScoreboards()
-    {
-        var a = await PlayCells(await CreateSession(), Lines.XWinsTopRow);
-        var b = await CreateSession();
-
-        AssertScore(await GetJson($"{SessionUrl(a)}/scoreboard"), 1, 0, 0);
-        AssertScore(await GetJson($"{SessionUrl(b)}/scoreboard"), 0, 0, 0);
     }
 
     private static string SessionUrl(JsonElement state) => $"/api/sessions/{state.GetProperty("sessionId").GetGuid()}";

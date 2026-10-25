@@ -91,7 +91,7 @@ Base URL: `http://localhost:5080`. JSON uses camelCase. Enums are strings: `Play
 | POST | `/api/sessions/{sessionId}/scoreboard/reset` | — | 200 `Scoreboard` | `POST /api/scoreboard/reset` |
 
 Routes are nested under the session because the scoreboard belongs to a session (D2). The session
-lock also guards its game. The OpenAPI document is served at `/openapi/v1.json` in Development.
+lock also guards its game.
 
 `GameState`:
 
@@ -124,27 +124,27 @@ Check order for a move: request shape (400) → session (404) → active game (4
 
 ## 5. Requirement-to-test checklist
 
-Backend tests are in `backend/tests/TicTacToe.Api.Tests` (101 cases); frontend tests are `frontend/src/app/**/*.spec.ts` (13 cases).
+Backend tests are in `backend/tests/TicTacToe.Api.Tests` (96 cases); frontend tests are `frontend/src/app/**/*.spec.ts` (13 cases).
 
 | Requirement / risk | Test(s) |
 |--------------------|---------|
 | Valid move, turn switching (R3) | `GameTests.ValidMove_RecordsMoveAndSwitchesTurn`, `GameTests.Turns_AlternateBetweenXAndO`, `GameApiTests.Move_ReturnsUpdatedStateWithHistory` |
-| Invalid moves rejected; history, revision, and turn unchanged (R3, R13, D16) | `GameTests.InvalidMove_IsRejectedAndLeavesStateUnchanged` (occupied, wrong player, two out-of-range cases, two stale-revision cases), `GameApiTests.InvalidMoveRequest_Returns400AndChangesNothing` (12 malformed bodies), `GameApiTests.OccupiedCell_Returns409`, `GameApiTests.WrongPlayer_Returns409` |
+| Invalid moves rejected; history, revision, and turn unchanged (R3, R13, D16) | `GameTests.InvalidMove_IsRejectedAndLeavesStateUnchanged` (occupied, wrong player, two out-of-range cases, two stale-revision cases), `GameApiTests.InvalidMoveRequest_Returns400AndChangesNothing` (12 malformed bodies) |
 | All 8 lines win; double-line union (R4, D13) | `GameRulesTests.EveryWinningLine_IsDetected` (8 cases), `GameRulesTests.OWin_IsDetected`, `GameRulesTests.MoveCompletingTwoLines_HighlightsUnion` |
 | Ninth-move win is not a draw (D13) | `GameRulesTests.FullBoardWithLine_IsWinNotDraw`, `GameTests.NinthMoveWin_IsWonNotDraw` |
 | Draw (R5) | `GameRulesTests.FullBoardWithoutLine_IsDraw`, `GameTests.FullBoardWithoutWinner_IsDraw` |
-| Move after completion (R4, R5, R13) | `GameTests.MoveAfterWin_IsRejected`, `GameTests.MoveAfterDraw_IsRejected`, `GameApiTests.MoveAndUndoAfterCompletion_Return409` |
+| Move after completion (R4, R5, R13) | `GameTests.MoveAfterWin_IsRejected`, `GameTests.MoveAfterDraw_IsRejected` |
 | Two Player undo (R8, D4) | `GameTests.TwoPlayerUndo_RemovesOnlyLastMoveAndRestoresTurn`, `GameTests.RepeatedUndo_StopsAtEmptyBoard`, `GameApiTests.Undo_TwoPlayer_RemovesLastMove` |
 | Computer undo (R8, D5) | `GameTests.ComputerUndo_RemovesHumanAndComputerMovesTogether`, `GameApiTests.Undo_Computer_RemovesMovePair` |
-| Undo after completion rejected (D3) | `GameTests.UndoAfterCompletion_IsRejected` (both modes), `GameApiTests.MoveAndUndoAfterCompletion_Return409` |
+| Undo after completion rejected (D3) | `GameTests.UndoAfterCompletion_IsRejected` (both modes) |
 | Computer priorities and tie-breaks (R10, D7) | `ComputerStrategyTests.WinsInsteadOfBlocking`, `BlocksInsteadOfTakingCenter`, `TakesCenterWhenNothingToWinOrBlock`, `TakesLowestFreeCornerWhenCenterIsTaken`, `TakesFirstCornerWhenAllCornersAreFree`, `TakesLowestEmptyCellWhenCenterAndCornersAreTaken`, `ChoosesLowestWinningCellWhenSeveralWin`, `ChoosesLowestBlockingCellWhenXHasSeveralThreats`, `GameTests.ComputerMode_FollowsPriorities_ThroughAGame` |
 | Computer only makes valid moves and never mutates its input | `ComputerStrategyTests.ChooseCell_DoesNotModifyBoard`, `ComputerStrategyTests.AlwaysChoosesAnEmptyCell_InEveryLegalPosition` (every legal position with O to move) |
-| Computer replies in one operation; never after completion; client cannot play O (R10, D6) | `GameTests.ComputerMode_RepliesInSameOperation`, `GameTests.ComputerMode_NoReplyAfterHumanWin`, `GameTests.ComputerMode_NoReplyAfterHumanDraw`, `GameTests.ComputerMode_ComputerCanWin`, `GameTests.ComputerMode_ClientCannotPlayO`, `GameApiTests.ComputerMode_MoveResponseIncludesComputerReply`, `GameApiTests.ComputerMode_PlayingAsO_Returns409` |
+| Computer replies in one operation; never after completion; client cannot play O (R10, D6) | `GameTests.ComputerMode_RepliesInSameOperation`, `GameTests.ComputerMode_NoReplyAfterHumanWin`, `GameTests.ComputerMode_NoReplyAfterHumanDraw`, `GameTests.ComputerMode_ComputerCanWin`, `GameTests.ComputerMode_ClientCannotPlayO`, `GameApiTests.ComputerMode_MoveResponseIncludesComputerReply` |
 | Scoreboard exactly once (R9, D12) | `PlaySessionTests.Win_IncrementsWinnerOnce`, `OWin_IncrementsOWins`, `Draw_IncrementsDrawsOnce`, `ComputerWin_IsScoredForO`, `InProgressMoves_DoNotScore`, `RejectedMoveAfterWin_DoesNotChangeScoreOrState`, `GameSessionServiceTests.ReadingState_DoesNotChangeScoreboard`, `GameApiTests.Win_IsReportedAndScoredOnce`, `GameApiTests.Get_DoesNotChangeScoreboard` |
 | Reset Game (R6, D8) | `PlaySessionTests.ResetGame_PreservesScoreAndModeAndClearsGame`, `PlaySessionTests.RetiredGame_CannotBeModified`, `GameApiTests.ResetGame_ReturnsFreshGameAndKeepsScore`, `GameApiTests.RetiredGameId_Returns404` |
 | Mode switch (D9) | `PlaySessionTests.StartNewGame_InOtherMode_KeepsScoreboard`, `GameApiTests.StartNewGame_SwitchesModeAndKeepsScore` |
 | Reset Scoreboard (R9, D10) | `PlaySessionTests.ResetScoreboard_KeepsBoardAndDoesNotRecount`, `PlaySessionTests.ResetScoreboard_ThenNewResult_CountsNormally`, `GameApiTests.ResetScoreboard_ClearsCountsAndKeepsGame` |
-| Session isolation (D2) | `GameSessionServiceTests.Sessions_HaveIndependentScoreboardsAndGames`, `GameApiTests.Sessions_HaveSeparateScoreboards`, `GameApiTests.UnknownSession_Returns404`, `GameSessionServiceTests.UnknownSession_IsNotFound` |
+| Session isolation (D2) | `GameSessionServiceTests.Sessions_HaveIndependentScoreboardsAndGames`, `GameApiTests.UnknownSession_Returns404`, `GameSessionServiceTests.UnknownSession_IsNotFound` |
 | Stale and duplicate commands; atomicity (D14, D15) | `GameSessionServiceTests.ConcurrentDuplicateMoves_OnlyOneSucceeds` (32 parallel requests, 1 applied), `GameTests.Undo_WithStaleRevision_IsRejected`, `GameApiTests.StaleRevision_Returns409AndChangesNothing` |
 | HTTP contract: shape, enums as strings, 201/Location, problem+json (D11, D17) | `GameApiTests.CreateSession_Returns201WithInitialState`, `GameApiTests.InvalidMode_Returns400`, every `AssertProblem` call in `GameApiTests` |
 | UI renders server state (R14) | `app.spec.ts`: "creates a session and renders the empty game…", "renders a finished game as returned…", "switches mode through the API…", "undo, reset game, and reset scoreboard…" |

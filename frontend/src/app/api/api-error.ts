@@ -9,7 +9,7 @@ export interface ApiError {
   message: string;
 }
 
-export const UNREACHABLE_MESSAGE =
+const UNREACHABLE_MESSAGE =
   "Can't reach the game server. Check that the backend is running on http://localhost:5080, then choose Reload game.";
 
 export function toApiError(error: unknown): ApiError {

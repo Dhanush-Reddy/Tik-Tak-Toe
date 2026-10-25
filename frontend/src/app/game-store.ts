@@ -4,9 +4,6 @@ import { ApiError, toApiError } from './api/api-error';
 import { GameApi } from './api/game-api';
 import { GameMode, GameState } from './api/game.models';
 
-export type PendingAction =
-  'connect' | 'move' | 'undo' | 'reset' | 'mode' | 'scoreboard' | 'reload';
-
 const SESSION_KEY = 'tic-tac-toe.sessionId';
 
 /**
@@ -20,7 +17,8 @@ export class GameStore {
   private readonly api = inject(GameApi);
 
   private readonly stateSignal = signal<GameState | null>(null);
-  private readonly pendingSignal = signal<PendingAction | null>(null);
+  /** The action in flight, such as 'connect' or 'move'; null when idle. */
+  private readonly pendingSignal = signal<string | null>(null);
   private readonly errorSignal = signal<string | null>(null);
   private readonly noticeSignal = signal<string | null>(null);
 
@@ -32,7 +30,6 @@ export class GameStore {
   readonly busy = computed(() => this.pending() !== null);
   readonly canPlay = computed(() => this.state()?.status === 'InProgress' && !this.busy());
   readonly canUndo = computed(() => !!this.state()?.canUndo && !this.busy());
-  readonly canReset = computed(() => this.state() !== null && !this.busy());
 
   /** Resumes this tab's session if the server still has it, otherwise starts a new one. */
   start(): Promise<void> {
@@ -54,8 +51,8 @@ export class GameStore {
 
   play(cell: number): Promise<void> {
     const state = this.state();
-    const player = state?.currentPlayer;
-    if (!state || !player || !this.canPlay() || state.board[cell] !== null) {
+    const player = state?.currentPlayer; // null once the game is over
+    if (!state || !player) {
       return Promise.resolve();
     }
 
@@ -78,7 +75,7 @@ export class GameStore {
 
   resetGame(): Promise<void> {
     const state = this.state();
-    if (!state || !this.canReset()) {
+    if (!state) {
       return Promise.resolve();
     }
     return this.run('reset', () => firstValueFrom(this.api.resetGame(state)));
@@ -86,7 +83,7 @@ export class GameStore {
 
   changeMode(mode: GameMode): Promise<void> {
     const state = this.state();
-    if (!state || state.mode === mode || this.busy()) {
+    if (!state || state.mode === mode) {
       return Promise.resolve();
     }
     return this.run('mode', () => firstValueFrom(this.api.startNewGame(state.sessionId, mode)));
@@ -94,7 +91,7 @@ export class GameStore {
 
   resetScoreboard(): Promise<void> {
     const state = this.state();
-    if (!state || this.busy()) {
+    if (!state) {
       return Promise.resolve();
     }
     return this.run('scoreboard', async () => {
@@ -117,7 +114,7 @@ export class GameStore {
     this.noticeSignal.set(null);
   }
 
-  private async run(action: PendingAction, request: () => Promise<GameState>): Promise<void> {
+  private async run(action: string, request: () => Promise<GameState>): Promise<void> {
     if (this.busy()) {
       return; // a second click while a request is in flight does nothing
     }

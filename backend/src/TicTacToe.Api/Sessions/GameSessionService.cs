@@ -23,39 +23,19 @@ public sealed class GameSessionService
     public GameStateResponse GetCurrentGame(Guid sessionId) => WithSession(sessionId, ToResponse);
 
     public GameStateResponse GetGame(Guid sessionId, Guid gameId) =>
-        WithSession(sessionId, session =>
-        {
-            session.ActiveGame(gameId);
-            return ToResponse(session);
-        });
+        Run(sessionId, session => session.ActiveGame(gameId));
 
     public GameStateResponse StartNewGame(Guid sessionId, GameMode mode) =>
-        WithSession(sessionId, session =>
-        {
-            session.StartNewGame(mode);
-            return ToResponse(session);
-        });
+        Run(sessionId, session => session.StartNewGame(mode));
 
     public GameStateResponse Play(Guid sessionId, Guid gameId, Player player, int row, int column, int expectedRevision) =>
-        WithSession(sessionId, session =>
-        {
-            session.Play(gameId, player, row, column, expectedRevision);
-            return ToResponse(session);
-        });
+        Run(sessionId, session => session.Play(gameId, player, row, column, expectedRevision));
 
     public GameStateResponse Undo(Guid sessionId, Guid gameId, int expectedRevision) =>
-        WithSession(sessionId, session =>
-        {
-            session.Undo(gameId, expectedRevision);
-            return ToResponse(session);
-        });
+        Run(sessionId, session => session.Undo(gameId, expectedRevision));
 
     public GameStateResponse ResetGame(Guid sessionId, Guid gameId) =>
-        WithSession(sessionId, session =>
-        {
-            session.ResetGame(gameId);
-            return ToResponse(session);
-        });
+        Run(sessionId, session => session.ResetGame(gameId));
 
     public ScoreboardResponse GetScoreboard(Guid sessionId) =>
         WithSession(sessionId, session => ToResponse(session.Scoreboard));
@@ -65,6 +45,14 @@ public sealed class GameSessionService
         {
             session.Scoreboard.Reset();
             return ToResponse(session.Scoreboard);
+        });
+
+    /// <summary>Runs a game command under the session lock and returns the resulting state.</summary>
+    private GameStateResponse Run(Guid sessionId, Action<PlaySession> command) =>
+        WithSession(sessionId, session =>
+        {
+            command(session);
+            return ToResponse(session);
         });
 
     private T WithSession<T>(Guid sessionId, Func<PlaySession, T> action)

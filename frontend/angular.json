@@ -4,11 +4,9 @@
   "cli": {
     "packageManager": "npm"
   },
-  "newProjectRoot": "projects",
   "projects": {
     "tic-tac-toe": {
       "projectType": "application",
-      "schematics": {},
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",

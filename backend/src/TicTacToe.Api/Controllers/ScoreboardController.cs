@@ -6,7 +6,6 @@ namespace TicTacToe.Api.Controllers;
 
 [ApiController]
 [Route("api/sessions/{sessionId:guid}/scoreboard")]
-[ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
 public sealed class ScoreboardController(GameSessionService sessions) : ControllerBase
 {
     [HttpGet]

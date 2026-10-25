@@ -36,20 +36,12 @@ builder.Services
         };
     });
 
-// Used by the OpenAPI document so it describes the same JSON the controllers produce.
-builder.Services.ConfigureHttpJsonOptions(options => ConfigureJson(options.SerializerOptions));
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi(options => options.AddSchemaTransformer(EnumSchemaTransformer.TransformAsync));
 
 var app = builder.Build();
 
 app.UseExceptionHandler(); // Unexpected errors become a generic problem+json 500 without a stack trace.
 app.UseStatusCodePages(); // Empty 404/405/415 responses get a problem+json body too.
-
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi(); // /openapi/v1.json
-}
 
 app.MapControllers();
 

@@ -42,7 +42,6 @@ export interface MoveRequest {
 
 /** RFC 9457 problem details as returned by the API, plus its stable `code`. */
 export interface ApiProblem {
-  status?: number;
   title?: string;
   detail?: string;
   code?: string;

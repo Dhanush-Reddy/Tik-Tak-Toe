@@ -6,14 +6,10 @@ namespace TicTacToe.Api.Controllers;
 
 [ApiController]
 [Route("api/sessions/{sessionId:guid}/games")]
-[ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
-[ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-[ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
 public sealed class GamesController(GameSessionService sessions) : ControllerBase
 {
     /// <summary>Starts a new game in the given mode (used to switch modes). The scoreboard is kept.</summary>
     [HttpPost]
-    [ProducesResponseType<GameStateResponse>(StatusCodes.Status201Created)]
     public ActionResult<GameStateResponse> Start(Guid sessionId, NewGameRequest request)
     {
         var state = sessions.StartNewGame(sessionId, request.Mode);
